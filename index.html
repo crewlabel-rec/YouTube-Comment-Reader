@@ -1,0 +1,584 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>유튜브 댓글 분석 가이드</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
+
+  :root {
+    --bg: #f6f4ef;
+    --surface: #ffffff;
+    --surface-raised: #fdfcfa;
+    --ink: #1c1e1d;
+    --ink-soft: #4a4f4d;
+    --muted: #797f7c;
+    --hairline: #e2ded4;
+    --accent: #1f6f5c;
+    --accent-soft: #e3efe9;
+    --accent-ink: #14493c;
+    --warm: #b7692c;
+    --warm-soft: #f7ead9;
+    --warm-ink: #7c4114;
+    --code-bg: #14201d;
+    --code-ink: #d9ece5;
+    --code-key: #7fd8b8;
+    --shadow: 0 1px 2px rgba(28,30,29,0.04), 0 8px 24px -12px rgba(28,30,29,0.12);
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #14171a;
+      --surface: #1b1f22;
+      --surface-raised: #20252a;
+      --ink: #eceeec;
+      --ink-soft: #c2c7c4;
+      --muted: #8b928f;
+      --hairline: #2c3236;
+      --accent: #52bfa0;
+      --accent-soft: #1b2e28;
+      --accent-ink: #9fe3cb;
+      --warm: #e2a563;
+      --warm-soft: #302319;
+      --warm-ink: #f0c793;
+      --code-bg: #0e1614;
+      --code-ink: #d9ece5;
+      --code-key: #7fd8b8;
+      --shadow: 0 1px 2px rgba(0,0,0,0.3), 0 12px 30px -14px rgba(0,0,0,0.55);
+    }
+  }
+
+  :root[data-theme="dark"] {
+    --bg: #14171a;
+    --surface: #1b1f22;
+    --surface-raised: #20252a;
+    --ink: #eceeec;
+    --ink-soft: #c2c7c4;
+    --muted: #8b928f;
+    --hairline: #2c3236;
+    --accent: #52bfa0;
+    --accent-soft: #1b2e28;
+    --accent-ink: #9fe3cb;
+    --warm: #e2a563;
+    --warm-soft: #302319;
+    --warm-ink: #f0c793;
+    --code-bg: #0e1614;
+    --code-ink: #d9ece5;
+    --code-key: #7fd8b8;
+    --shadow: 0 1px 2px rgba(0,0,0,0.3), 0 12px 30px -14px rgba(0,0,0,0.55);
+  }
+
+  * { box-sizing: border-box; }
+
+  html, body { background: var(--bg); }
+
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: "IBM Plex Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+    line-height: 1.65;
+    -webkit-font-smoothing: antialiased;
+    padding-inline: 20px;
+  }
+
+  .page {
+    max-width: 760px;
+    margin: 0 auto;
+    padding-block: 56px 80px;
+  }
+
+  header.hero {
+    margin-bottom: 40px;
+  }
+
+  .eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12.5px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    color: var(--accent-ink);
+    background: var(--accent-soft);
+    padding: 5px 12px;
+    border-radius: 999px;
+    margin-bottom: 18px;
+  }
+
+  h1 {
+    font-size: clamp(26px, 4.4vw, 34px);
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    line-height: 1.35;
+    margin: 0 0 12px;
+    text-wrap: balance;
+  }
+
+  .lede {
+    font-size: 15.5px;
+    color: var(--ink-soft);
+    max-width: 58ch;
+    margin: 0;
+  }
+
+  section { margin-bottom: 44px; }
+
+  .section-label {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    margin-bottom: 16px;
+  }
+
+  .section-label .mark {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--accent);
+    letter-spacing: 0.04em;
+  }
+
+  .section-label h2 {
+    font-size: 18px;
+    font-weight: 700;
+    margin: 0;
+    letter-spacing: -0.01em;
+  }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--hairline);
+    border-radius: 14px;
+    padding: 20px 22px;
+    box-shadow: var(--shadow);
+  }
+
+  .cause-card p {
+    margin: 0;
+    font-size: 14.5px;
+    color: var(--ink-soft);
+  }
+
+  .cause-card .term {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 13px;
+    background: var(--accent-soft);
+    color: var(--accent-ink);
+    padding: 1px 6px;
+    border-radius: 5px;
+  }
+
+  /* timeline */
+  .timeline {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  .timeline::before {
+    content: "";
+    position: absolute;
+    left: 19px;
+    top: 8px;
+    bottom: 8px;
+    width: 1px;
+    background: var(--hairline);
+  }
+
+  .step {
+    position: relative;
+    display: grid;
+    grid-template-columns: 40px 1fr;
+    gap: 16px;
+    align-items: start;
+  }
+
+  .step-num {
+    position: relative;
+    z-index: 1;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: var(--accent);
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: "IBM Plex Mono", monospace;
+    font-weight: 600;
+    font-size: 15px;
+    flex-shrink: 0;
+  }
+
+  .step-body {
+    background: var(--surface);
+    border: 1px solid var(--hairline);
+    border-radius: 14px;
+    padding: 16px 20px 18px;
+    box-shadow: var(--shadow);
+  }
+
+  .step-body h3 {
+    margin: 0 0 10px;
+    font-size: 15.5px;
+    font-weight: 600;
+  }
+
+  .step-body ol, .step-body ul {
+    margin: 0;
+    padding-left: 20px;
+    font-size: 14px;
+    color: var(--ink-soft);
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .step-body li::marker {
+    color: var(--muted);
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 12.5px;
+  }
+
+  .step-body ul.substeps {
+    list-style: none;
+    padding-left: 0;
+    margin-top: 8px;
+    border-top: 1px dashed var(--hairline);
+    padding-top: 10px;
+  }
+
+  .step-body ul.substeps li {
+    padding-left: 18px;
+    position: relative;
+  }
+
+  .step-body ul.substeps li::before {
+    content: "›";
+    position: absolute;
+    left: 0;
+    color: var(--accent);
+    font-weight: 600;
+  }
+
+  code.kbd {
+    font-family: "IBM Plex Mono", monospace;
+    background: var(--accent-soft);
+    color: var(--accent-ink);
+    border-radius: 5px;
+    padding: 1px 6px;
+    font-size: 12.5px;
+  }
+
+  .note {
+    margin-top: 10px;
+    font-size: 13px;
+    color: var(--muted);
+    display: flex;
+    gap: 8px;
+    align-items: baseline;
+  }
+
+  .note .glyph { color: var(--accent); font-weight: 700; flex-shrink: 0; }
+
+  /* callout */
+  .callout {
+    background: var(--warm-soft);
+    border: 1px solid color-mix(in srgb, var(--warm) 35%, var(--hairline));
+    border-radius: 14px;
+    padding: 18px 20px;
+    display: flex;
+    gap: 14px;
+  }
+
+  .callout .glyph {
+    font-size: 20px;
+    line-height: 1;
+    flex-shrink: 0;
+  }
+
+  .callout strong {
+    color: var(--warm-ink);
+    display: block;
+    font-size: 13.5px;
+    letter-spacing: 0.02em;
+    margin-bottom: 4px;
+  }
+
+  .callout p {
+    margin: 0;
+    font-size: 14px;
+    color: var(--ink-soft);
+  }
+
+  /* prompt block */
+  .prompt-wrap {
+    position: relative;
+    border-radius: 14px;
+    overflow: hidden;
+    box-shadow: var(--shadow);
+    border: 1px solid var(--hairline);
+  }
+
+  .prompt-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: var(--surface-raised);
+    padding: 10px 16px;
+    border-bottom: 1px solid var(--hairline);
+  }
+
+  .prompt-head span {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 12px;
+    color: var(--muted);
+    letter-spacing: 0.03em;
+  }
+
+  .copy-btn {
+    font-family: "IBM Plex Sans KR", sans-serif;
+    font-size: 12.5px;
+    font-weight: 600;
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    border-radius: 7px;
+    padding: 6px 12px;
+    cursor: pointer;
+    transition: opacity 0.15s ease, transform 0.1s ease;
+  }
+
+  .copy-btn:hover { opacity: 0.88; }
+  .copy-btn:active { transform: scale(0.97); }
+  .copy-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  pre.prompt {
+    margin: 0;
+    background: var(--code-bg);
+    color: var(--code-ink);
+    padding: 20px;
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 12.5px;
+    line-height: 1.7;
+    overflow-x: auto;
+    white-space: pre-wrap;
+    word-break: keep-all;
+  }
+
+  pre.prompt .h { color: var(--code-key); font-weight: 600; }
+
+  footer {
+    margin-top: 56px;
+    padding-top: 20px;
+    border-top: 1px solid var(--hairline);
+    font-size: 12.5px;
+    color: var(--muted);
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  @media (max-width: 480px) {
+    .page { padding-block: 40px 56px; }
+    .step { grid-template-columns: 32px 1fr; gap: 12px; }
+    .step-num { width: 32px; height: 32px; font-size: 13px; }
+    .timeline::before { left: 15px; }
+    .step-body { padding: 14px 16px 16px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="page">
+
+  <header class="hero">
+    <span class="eyebrow">DSG 협업 가이드 · 데이터 정리</span>
+    <h1>"YouTube Comment Reader"로 추출한 댓글 데이터,<br>엑셀 깨짐 없이 열고 AI로 분석하기</h1>
+    <p class="lede">크롬 확장 프로그램으로 가져온 댓글을 구형 엑셀에서도 깨지지 않게 정리하고, 곧바로 AI 여론 분석까지 넘기는 절차입니다.</p>
+  </header>
+
+  <section>
+    <div class="section-label">
+      <span class="mark">WHY</span>
+      <h2>왜 엑셀이 깨지는가</h2>
+    </div>
+    <div class="card cause-card">
+      <p>구형 엑셀(Excel 2010 등)은 <span class="term">UTF-8</span> 인코딩 처리 능력이 부족합니다. 댓글 안에 포함된 줄바꿈(엔터)이나 큰따옴표를 새로운 행으로 잘못 인식해, 글자가 깨지거나 경고창이 뜨면서 표 전체가 무너지는 것이 원인입니다.</p>
+    </div>
+  </section>
+
+  <section>
+    <div class="section-label">
+      <span class="mark">STEP 1–4</span>
+      <h2>단계별 해결 절차</h2>
+    </div>
+
+    <div class="timeline">
+
+      <div class="step">
+        <div class="step-num">1</div>
+        <div class="step-body">
+          <h3>데이터 파일 추출</h3>
+          <ul class="substeps">
+            <li>"YouTube Comment Reader"로 유튜브 영상의 댓글을 가져왔다면 데이터 파일을 다운로드합니다 — <code class="kbd">Export &gt; csv &gt; tab</code></li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-num">2</div>
+        <div class="step-body">
+          <h3>구글 스프레드시트 업로드</h3>
+          <ol>
+            <li>웹 브라우저에서 구글 스프레드시트(sheets.new) 접속 — 새 시트 생성</li>
+            <li>상단 메뉴 <code class="kbd">파일 → 가져오기</code> 클릭</li>
+            <li><code class="kbd">업로드</code> 탭에서 다운로드한 파일을 드래그 &amp; 드롭</li>
+          </ol>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-num">3</div>
+        <div class="step-body">
+          <h3>데이터 가져오기 설정</h3>
+          <ol>
+            <li>가져오기 위치 — <code class="kbd">스프레드시트 바꾸기</code> (기본값)</li>
+            <li>구분자 유형 — <code class="kbd">자동 감지</code> 또는 <code class="kbd">탭</code></li>
+            <li>하단 초록색 <code class="kbd">데이터 가져오기</code> 버튼 클릭</li>
+          </ol>
+          <p class="note"><span class="glyph">※</span> 웹 기반인 구글 시트가 인코딩과 댓글 안의 줄바꿈을 자동으로 정돈해 깔끔한 표로 정렬해 줍니다.</p>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-num">4</div>
+        <div class="step-body">
+          <h3>최신 엑셀 파일(.xlsx)로 저장</h3>
+          <ol>
+            <li>구글 시트 상단 메뉴 <code class="kbd">파일 → 다운로드 → Microsoft Excel (.xlsx)</code> 클릭</li>
+            <li>PC에 저장된 <code class="kbd">.xlsx</code> 파일을 엑셀로 바로 열기</li>
+          </ol>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <section>
+    <div class="section-label">
+      <span class="mark">AI</span>
+      <h2>AI에게 댓글 분석 의뢰하기</h2>
+    </div>
+
+    <div class="callout" style="margin-bottom: 20px;">
+      <span class="glyph">💡</span>
+      <div>
+        <strong>핵심 팁</strong>
+        <p>AI에게 댓글 데이터를 전달할 때는 위 절차 없이도 됩니다. <code class="kbd">Export &gt; csv &gt; tab</code> 파일을 그대로 전달해도 AI는 분석이 가능하니, 바쁠 때는 정리 없이 그대로 전송하세요.</p>
+      </div>
+    </div>
+
+    <div class="prompt-wrap">
+      <div class="prompt-head">
+        <span>ANALYSIS PROMPT · 복사해서 그대로 사용</span>
+        <button class="copy-btn" id="copyBtn" type="button">복사하기</button>
+      </div>
+      <pre class="prompt" id="promptText"><span class="h">[역할 부여]</span>
+당신은 빅데이터 여론 분석가이자 언어학·디지털 커뮤니티 담론 연구 전문가입니다.
+제공되는 유튜브 댓글 데이터를 바탕으로 여론의 구조, 언어적 특징, 논쟁 포인트를 정밀하게 분석하여 다각도 심층 보고서를 작성해 주세요.
+
+<span class="h">[분석 목적]</span>
+단순한 긍정/부정 비율 평가를 넘어, 댓글 작성자들의 잠재된 정서, 특정 커뮤니티 은어 및 밈(Meme)의 쓰임새, 여론을 주도하는 핵심 프레임, 잠재적 리스크 요인을 입체적으로 파악하고자 합니다.
+
+<span class="h">[분석 프레임워크 (다음 6가지 항목을 반드시 포함할 것)]</span>
+
+1. 여론 총평 및 감정 분포 (Overview &amp; Sentiment Distribution)
+   - 분석된 총 댓글 분위기 한 줄 요약
+   - 감정 비중 추정 (%): [긍정 / 중립 / 부정 / 극단적·공격적]
+   - 전체적인 대화의 톤앤매너 (예: 건설적 토론, 비아냥·조롱, 집단적 공격, 맹목적 옹호 등)
+
+2. 핵심 이슈 및 테마 Top 5 (Topic Modeling)
+   - 댓글에서 가장 집중적으로 언급되는 주요 의제 5가지 추출
+   - 각 테마별 차지 비중(%) 및 핵심 주장 요약
+   - 각 테마를 대표하는 실제 댓글 문장 2~3개씩 인용
+
+3. 언어적 특징 및 은어/비하어 분석 (Linguistic &amp; Jargon Analysis)
+   - 댓글 내 등장하는 특정 커뮤니티 은어, 밈, 줄임말, 비하·혐오 표현 추출
+   - 각 용어의 실제 의미, 사용된 맥락, 해당 용어를 쓰는 집단의 성향 및 의도 해석
+
+4. 주요 공격/옹호 타겟 분석 (Target Analysis)
+   - 비판 및 공격의 대상이 되는 주체 (예: 영상 출연자, 특정 성별, 특정 집단, 사회 제도 등)와 그 원인
+   - 옹호 및 공감의 대상이 되는 주체와 그 원인
+
+5. 고공감/고참여 댓글 파악 (High-Engagement Analysis)
+   - '좋아요'나 '답글' 수가 많은 영향력 있는 댓글들의 공통적 논리
+   - 시청자들의 강한 공감을 이끌어낸 핵심 프레임 또는 집단적 공감대 분석
+
+6. 리스크 평가 및 종합 시사점 (Risk &amp; Insight)
+   - 젠더·이념·계층 갈등 수위 및 집단적 악플/화력 지원 징후 여부
+   - 해당 이슈가 향후 확산될 가능성 및 데이터가 주는 핵심 시사점
+
+<span class="h">[출력 형식 및 주의사항]</span>
+- 마크다운(Markdown) 표, Standalone Bolding, 불렛포인트를 활용하여 가독성을 극대화할 것.
+- 주관적 추측은 배제하고, 입력된 데이터 내 텍스트 표현을 직접적 근거로 제시할 것.
+- 은어나 비속어가 포함되어 있더라도 원문의 의도를 정확히 파악하기 위해 필터링 없이 그대로 분석에 반영할 것.</pre>
+    </div>
+  </section>
+
+  <footer>
+    <span>DSG Agency · 크루레이블 워크플로우</span>
+    <span id="copiedMsg" hidden>클립보드에 복사되었습니다 ✓</span>
+  </footer>
+
+</div>
+
+<script>
+(function () {
+  var btn = document.getElementById('copyBtn');
+  var pre = document.getElementById('promptText');
+  var msg = document.getElementById('copiedMsg');
+  if (!btn || !pre) return;
+
+  btn.addEventListener('click', function () {
+    var text = pre.textContent;
+    function done(ok) {
+      btn.textContent = ok ? '복사됨 ✓' : '복사 실패';
+      if (msg) { msg.hidden = false; }
+      setTimeout(function () {
+        btn.textContent = '복사하기';
+        if (msg) { msg.hidden = true; }
+      }, 1800);
+    }
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(function () { done(true); }).catch(function () { fallback(); });
+      } else {
+        fallback();
+      }
+    } catch (e) {
+      fallback();
+    }
+    function fallback() {
+      try {
+        var range = document.createRange();
+        range.selectNode(pre);
+        var sel = window.getSelection();
+        sel.removeAllRanges();
+        sel.addRange(range);
+        var ok = document.execCommand('copy');
+        sel.removeAllRanges();
+        done(ok);
+      } catch (e2) {
+        done(false);
+      }
+    }
+  });
+})();
+</script>
+</body>
+</html>
